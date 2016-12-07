@@ -4,32 +4,21 @@
         xmlns:local="clr-namespace:CommandTarget"
         Title="MainWindow" Height="200" Width="400">
 
-    <Window.Resources>
-        <!--Get a reference to the window to establish View Context-->
-        <RelativeSource x:Key="View" Mode="FindAncestor"
-                        AncestorType="{x:Type Window}" />
-    </Window.Resources>
     <StackPanel x:Name="RootPanel">
 
         <StackPanel.CommandBindings>
             <CommandBinding x:Name="Pause" Command="Pause"
-                            Executed="{x:Static local:ButtonPanelView.OnButtonPause}"
-                            CanExecute="{x:Static local:ButtonPanelView.OnPauseCanExecute}" />
+                            Executed="{x:Static local:MainWindow.OnButtonPause}"
+                            CanExecute="{x:Static local:MainWindow.OnPauseCanExecute}" />
         </StackPanel.CommandBindings>
 
         <DockPanel>
 
-            <Menu DockPanel.Dock="Left" MinWidth="200">
-                <MenuItem Header="Toggle" x:Name="Emitter"
+            <Menu DockPanel.Dock="Top" >
+                <MenuItem Header="Click Me" x:Name="Emitter"
                           Command="Pause"
-                          CommandTarget="{Binding View.Target, 
-                                            RelativeSource={StaticResource View}}" />
+                          CommandTarget="{Binding ElementName=Button2}" />
             </Menu>
-
-            <ComboBox x:Name="Target" AllowDrop="True" Margin="6,0,0,0"
-                      IsEditable="True"
-                      IsReadOnly="True"
-                      Text="-- Select button to bind to --" />
 
         </DockPanel>
 
