@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -8,101 +10,123 @@ using System.Windows.Input;
 namespace CommandTarget
 {
 	/// <summary>
-	/// Interaction logic for MainWindow.xaml
+	///     Interaction logic for MainWindow.xaml
 	/// </summary>
 	public partial class MainWindow : Window
 	{
-		public MainWindow ()
+		public MainWindow()
 		{
 			InitializeComponent();
-			new ButtonPanelView(Buttons, Target, Emmiter);
+			View = new ButtonPanelView(Buttons, Target, Emitter);
 		}
 
+		public ButtonPanelView View { get; set; }
 	}
 
-	public class ButtonPanelView
+	public class ButtonPanelView : INotifyPropertyChanged
 	{
-		public List<ToggleButton> ButtonList { get; set; }
-		public List<string> NamesList { get; set; }
-		public ComboBox Cb { get; set; }
-
-		private readonly MenuItem _mi;
-		private static ButtonPanelView Instance;
-
-		// set the CommandTarget acording to the ComboBox selection
-		private void OnSelectionChanged (object s, RoutedEventArgs e)
-		{
-			var mi = _mi as MenuItem;
-			if (mi == null || Cb.SelectedIndex < 0) return;
-			mi.CommandTarget = ButtonList[Cb.SelectedIndex];
-		}
-
-
-		//PAUSE COMMAND
-
-		// helper to extract the target from the event args
-		private static bool ButtonPauseTargets (RoutedEventArgs e,
-			Func<ToggleButton, bool> ex)
-		{
-			var handled = false;
-
-			var target = e.OriginalSource as ToggleButton;
-			if (target == null) return false;
-			handled = ex(target);
-
-			return handled;
-		}
-
-		// Executed
-		public static void _OnButtonPause (object sender, ExecutedRoutedEventArgs e)
-		{
-			e.Handled = ButtonPauseTargets(e, delegate(ToggleButton target)
-			{
-				if (!target.IsEnabled) return false;
-				var flag = target.IsChecked ?? false;
-				target.IsChecked = !flag;
-				return true;
-			});
-		}
-		public static ExecutedRoutedEventHandler OnButtonPause
-		{
-			get { return _OnButtonPause; }
-		}
-
-		// CanExecute - dissable if no item selected
-		private static void _OnPauseCanExecute (object sender, CanExecuteRoutedEventArgs e)
-		{
-			e.CanExecute = Instance != null && Instance.Cb.SelectedIndex > -1;
-		}
-
-		public static CanExecuteRoutedEventHandler OnPauseCanExecute
-		{
-			get { return _OnPauseCanExecute; }
-		}
+		private static CanExecuteRoutedEventHandler _pauseCanExecute;
 
 
 		//CONSTRUCTOR
 
-		public ButtonPanelView (Panel sp, ComboBox cb, MenuItem mi)
+		public ButtonPanelView (Panel sp, ComboBox cb, ItemsControl itemsControl)
 		{
-			ButtonList = new List<ToggleButton>();
-			NamesList = new List<string>();
+			CommandTargets = new List<ToggleButton>();	
+			ComboBoxItemSource = new List<string>(); 
 
 			foreach (var ui in sp.Children)
 			{
 				var tb = ui as ToggleButton;
 				if (tb == null) continue;
-				ButtonList.Add(tb);
-				NamesList.Add(tb.Name);
+				CommandTargets.Add(tb);
+				ComboBoxItemSource.Add(tb.Name);
 			}
 
 			Cb = cb;
-			cb.ItemsSource = NamesList;
+			cb.ItemsSource = ComboBoxItemSource;
 			cb.SelectionChanged += OnSelectionChanged;
 
-			_mi = mi;
-			Instance = this;
-			OnSelectionChanged(_mi, new RoutedEventArgs());
+			_pauseCanExecute += (s, e) => e.CanExecute = Cb.SelectedIndex > -1;
+			OnSelectionChanged(itemsControl, new RoutedEventArgs());
+		}
+
+		public List<ToggleButton> CommandTargets { get; set; }
+		public List<string> ComboBoxItemSource { get; set; }
+		public ComboBox Cb { get; set; }
+
+		// set the CommandTarget acording to the ComboBox selection
+		private ToggleButton _target;
+		public ToggleButton Target
+		{
+			get { return _target; }
+			set
+			{
+				if (Equals(_target, value)) return;
+				_target = value;
+				OnPropertyChanged();
+			}
+		}
+
+		//PAUSE COMMAND
+		// Static binding callbacks
+
+		// Executed
+		public static ExecutedRoutedEventHandler OnButtonPause
+		{
+			get
+			{
+				return (sender, e) =>
+				{
+					e.Handled = ButtonPauseTargets(e, delegate(ToggleButton target)
+					{
+						if (!target.IsEnabled) return false;
+						var flag = target.IsChecked ?? false;
+						target.IsChecked = !flag;
+						return true;
+					});
+				};
+			}
+		}
+
+		// CanExecute - dissable if no item selected
+		public static CanExecuteRoutedEventHandler OnPauseCanExecute
+		{
+			get
+			{
+				return (sender, e) =>
+				{
+					if (_pauseCanExecute == null) return;
+					_pauseCanExecute(sender, e);
+				};
+			}
+		}
+
+		// helper to extract the target from the event args
+		private static bool ButtonPauseTargets (RoutedEventArgs e,
+			Func<ToggleButton, bool> ex)
+		{
+			var target = e.OriginalSource as ToggleButton;
+			if (target == null) return false;
+			var handled = ex(target);
+
+			return handled;
+		}
+
+		// INotifyPropertyChanged
+		public event PropertyChangedEventHandler PropertyChanged;
+		protected virtual void OnPropertyChanged (
+			[CallerMemberName] string propertyName = null)
+		{
+			var handler = PropertyChanged;
+			if (handler != null)
+				handler(this, new PropertyChangedEventArgs(propertyName));
+		}
+
+		private void OnSelectionChanged (object s, RoutedEventArgs e)
+		{
+			if (Cb.SelectedIndex < 0) return;
+			Target = CommandTargets[Cb.SelectedIndex];
 		}
 	}
 }

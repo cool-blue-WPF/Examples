@@ -3,10 +3,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:CommandTarget"
         Title="MainWindow" Height="200" Width="400">
+
+    <Window.Resources>
+        <!--Get a reference to the window to establish View Context-->
+        <RelativeSource x:Key="View" Mode="FindAncestor"
+                        AncestorType="{x:Type Window}" />
+    </Window.Resources>
     <StackPanel x:Name="RootPanel">
 
         <StackPanel.CommandBindings>
-            <CommandBinding x:Name="Pause" Command="Pause" 
+            <CommandBinding x:Name="Pause" Command="Pause"
                             Executed="{x:Static local:ButtonPanelView.OnButtonPause}"
                             CanExecute="{x:Static local:ButtonPanelView.OnPauseCanExecute}" />
         </StackPanel.CommandBindings>
@@ -14,8 +20,10 @@
         <DockPanel>
 
             <Menu DockPanel.Dock="Left" MinWidth="200">
-                <MenuItem Header="Toggle" x:Name="Emmiter"
-                          Command="Pause"  />
+                <MenuItem Header="Toggle" x:Name="Emitter"
+                          Command="Pause"
+                          CommandTarget="{Binding View.Target, 
+                                            RelativeSource={StaticResource View}}" />
             </Menu>
 
             <ComboBox x:Name="Target" AllowDrop="True" Margin="6,0,0,0"
@@ -28,9 +36,9 @@
         <StackPanel Name="Buttons">
 
             <ToggleButton x:Name="Button1" Height="30" HorizontalAlignment="Stretch"
-                      Content="Button1"/>
+                          Content="Button1" />
             <ToggleButton x:Name="Button2" Height="30" HorizontalAlignment="Stretch"
-                      Content="Button2"/>
+                          Content="Button2" />
 
         </StackPanel>
 
